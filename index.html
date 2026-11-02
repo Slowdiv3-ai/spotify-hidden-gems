@@ -105,43 +105,43 @@
 
   </main>
 
-   <script>
-    // 1. PUT YOUR LAST.FM API KEY HERE
-    const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; // <--- Change this!
+    <script>
+    // 1. YOUR API KEY
+    const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; // <--- Make sure your key is here!
 
     async function generatePlaylist() {
       const btn = document.getElementById('spin-btn');
       const resultView = document.getElementById('result-view');
       const listContainer = document.getElementById('song-list');
       
-      // Get the values from the input boxes
       const seedArtist = document.getElementById('search-artist').value.trim();
       const seedTrack = document.getElementById('search-track').value.trim();
 
-      // If the user didn't type anything, use a default
-      let finalArtist = seedArtist || 'Tame Impala';
-      let finalTrack = seedTrack || 'The Less I Know The Better';
+      // If the user leaves it blank, default to Tame Impala
+      const finalArtist = seedArtist || 'Tame Impala';
+      const finalTrack = seedTrack || 'The Less I Know The Better';
 
       // Show loading state
       btn.innerText = "Digging...";
       btn.disabled = true;
       resultView.classList.remove('hidden');
-      listContainer.innerHTML = `<li class="text-gray-400 p-3">Searching the underground for ${finalTrack}...</li>`;
+      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching the underground...</li>`;
 
       try {
-        // Build the Last.fm API URL with the user's inputs
-        const url = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(finalArtist)}&track=${encodeURIComponent(finalTrack)}&api_key=${LASTFM_API_KEY}&format=json&limit=10`;
+        const url = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(finalArtist)}&track=${encodeURIComponent(finalTrack)}&api_key=${LASTFM_API_KEY}&format=json&limit=8`;
 
         const response = await fetch(url);
         const data = await response.json();
 
+        // Check if Last.fm actually gave us tracks
         if (data.similartracks && data.similartracks.track) {
           const tracks = data.similartracks.track;
           listContainer.innerHTML = '';
 
           tracks.slice(0, 5).forEach(track => {
             const li = document.createElement('li');
-            li.className = "p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition flex items-center gap-3";
+            // Added flexbox and hover effects to fit the album art
+            li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
             
             let artistName = "Unknown Artist";
             if (track.artist) {
@@ -151,28 +151,48 @@
             }
 
             const trackName = track.name || "Unknown Track";
-            li.innerHTML = `<span class="text-purple-400">▶</span> ${trackName} — <span class="text-gray-500">${artistName}</span>`;
+
+            // GET THE ALBUM ART (Fallback to a blank grey square if none exists)
+            let imageUrl = "https://via.placeholder.com/100/333333/ffffff?text=No+Art";
+            if (track.image && track.image.length > 0) {
+              // Last.fm returns multiple sizes. We want the 'large' one.
+              const largeImage = track.image.find(img => img.size === 'large');
+              if (largeImage && largeImage['#text']) imageUrl = largeImage['#text'];
+            }
+
+            li.innerHTML = `
+              <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform">
+              <div class="flex flex-col">
+                <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
+                <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
+              </div>
+            `;
             listContainer.appendChild(li);
           });
           
           btn.innerText = "Dig Again";
-          } else {
+        } else {
+          // If the API responded but had no similar tracks
           listContainer.innerHTML = `
-            <li class="p-3 bg-red-900/20 border border-red-500/30 rounded-lg text-red-200">
+            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
               <p class="font-bold mb-1">No similar tracks found for "${finalTrack}".</p>
-              <p class="text-sm text-red-300/80">Last.fm's underground database couldn't find a match. Try a more specific artist/song combo, or try an indie/classic track!</p>
+              <p class="text-sm text-red-300/80">Last.fm's underground database is weird. Try an indie song, or check the spelling!</p>
             </li>`;
           btn.innerText = "Try Again";
         }
       } catch (error) {
+        // If the API totally broke (e.g., bad internet, bad API key)
         console.error(error);
-        listContainer.innerHTML = '<li class="text-red-400 p-3">API error. Check your console.</li>';
+        listContainer.innerHTML = `
+            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
+              <p class="font-bold mb-1">API Error.</p>
+              <p class="text-sm text-red-300/80">Check your internet connection or make sure your Last.fm API key is correct.</p>
+            </li>`;
         btn.innerText = "Error";
       } finally {
         btn.disabled = false;
       }
     }
   </script>
-
 </body>
 </html>
