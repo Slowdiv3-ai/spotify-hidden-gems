@@ -10,13 +10,12 @@
     
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #030303; /* Very dark, almost black */
+      background-color: #030303;
       color: white;
       margin: 0;
       overflow-x: hidden;
     }
 
-    /* --- THE CSS GLOWING BACKGROUND --- */
     .aurora-container {
       position: fixed;
       top: 0;
@@ -31,42 +30,15 @@
     .aurora-orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(100px); /* This creates the soft glowing effect */
+      filter: blur(100px);
       opacity: 0.4;
       animation: float 20s infinite alternate ease-in-out;
     }
 
-    /* Purple Orb */
-    .orb-1 {
-      width: 600px;
-      height: 600px;
-      background: #6d28d9; 
-      top: -10%;
-      left: -10%;
-      animation-delay: 0s;
-    }
+    .orb-1 { width: 600px; height: 600px; background: #6d28d9; top: -10%; left: -10%; animation-delay: 0s; }
+    .orb-2 { width: 500px; height: 500px; background: #2563eb; bottom: -10%; right: -10%; animation-delay: -5s; }
+    .orb-3 { width: 400px; height: 400px; background: #db2777; top: 40%; left: 40%; animation-delay: -10s; }
 
-    /* Blue Orb */
-    .orb-2 {
-      width: 500px;
-      height: 500px;
-      background: #2563eb; 
-      bottom: -10%;
-      right: -10%;
-      animation-delay: -5s;
-    }
-
-    /* Pink Orb */
-    .orb-3 {
-      width: 400px;
-      height: 400px;
-      background: #db2777;
-      top: 40%;
-      left: 40%;
-      animation-delay: -10s;
-    }
-
-    /* Animation to make the orbs slowly drift around */
     @keyframes float {
       0% { transform: translate(0, 0) scale(1); }
       50% { transform: translate(100px, 50px) scale(1.1); }
@@ -76,14 +48,14 @@
 </head>
 <body class="min-h-screen flex flex-col relative">
 
-  <!-- The Glowing Background -->
+  <!-- Background -->
   <div class="aurora-container">
     <div class="aurora-orb orb-1"></div>
     <div class="aurora-orb orb-2"></div>
     <div class="aurora-orb orb-3"></div>
   </div>
 
-  <!-- Top Navigation Bar -->
+  <!-- Nav Bar -->
   <nav class="w-full flex justify-between items-center px-8 py-6 relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-md">
     <div class="text-xl font-bold tracking-tighter flex items-center gap-2">
       <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
@@ -99,10 +71,10 @@
     </button>
   </nav>
 
-  <!-- Main Hero Content -->
+  <!-- Main Content -->
   <main class="flex-1 flex flex-col items-center justify-center text-center px-4 relative z-10 pt-20 pb-20">
     
-    <span class="inline-block px-3 py-1 text-xs font-semibold tracking-wider text-purple-300 uppercase bg-purple-900/30 rounded-full border border-purple-500/30 mb-8 backdrop-blur-sm"
+    <span class="inline-block px-3 py-1 text-xs font-semibold tracking-wider text-purple-300 uppercase bg-purple-900/30 rounded-full border border-purple-500/30 mb-8 backdrop-blur-sm">
       The anti-algorithm music engine
     </span>
 
@@ -117,14 +89,13 @@
       Curated deep cuts, underground vibes, and tracks you won't hear on the radio. Paste a vibe, get a playlist.
     </p>
 
-    <!-- The Button -->
     <div class="flex flex-col sm:flex-row gap-4">
       <button id="spin-btn" onclick="generatePlaylist()" class="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
         Generate Hidden Gems
       </button>
     </div>
 
-    <!-- The Results Box (Hidden by default) -->
+    <!-- Results Container (HIDDEN BY DEFAULT) -->
     <div id="result-view" class="hidden mt-12 w-full max-w-2xl backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 text-left shadow-2xl">
       <h2 class="text-xl font-semibold mb-4 text-white">Your 5 Hidden Gems:</h2>
       <ul id="song-list" class="space-y-2 text-gray-300">
@@ -134,7 +105,6 @@
 
   </main>
 
-  <!-- Script for the Song Generator -->
   <script>
     const songs = [
       "Men I Trust - Show Me How",
@@ -148,7 +118,9 @@
     ];
 
     function generatePlaylist() {
+      // Unhide the results
       document.getElementById('result-view').classList.remove('hidden');
+      
       const btn = document.getElementById('spin-btn');
       btn.innerText = "Shuffle Again";
       
