@@ -156,8 +156,12 @@
           });
           
           btn.innerText = "Dig Again";
-        } else {
-          listContainer.innerHTML = '<li class="text-red-400 p-3">No similar tracks found. Try a different song!</li>';
+          } else {
+          listContainer.innerHTML = `
+            <li class="p-3 bg-red-900/20 border border-red-500/30 rounded-lg text-red-200">
+              <p class="font-bold mb-1">No similar tracks found for "${finalTrack}".</p>
+              <p class="text-sm text-red-300/80">Last.fm's underground database couldn't find a match. Try a more specific artist/song combo, or try an indie/classic track!</p>
+            </li>`;
           btn.innerText = "Try Again";
         }
       } catch (error) {
