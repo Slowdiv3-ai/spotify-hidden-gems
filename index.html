@@ -86,10 +86,13 @@
       Curated deep cuts, underground vibes, and tracks you won't hear on the radio. Paste a vibe, get a playlist.
     </p>
 
-    <div class="flex flex-col sm:flex-row gap-4">
-      <!-- Note the onclick is now generatePlaylist(), which is defined below -->
-      <button id="spin-btn" onclick="generatePlaylist()" class="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed">
-        Generate Hidden Gems
+
+    <!-- The Search Inputs -->
+    <div class="flex flex-col sm:flex-row gap-3 w-full max-w-2xl mx-auto backdrop-blur-md bg-white/5 p-2 rounded-2xl border border-white/10 shadow-lg">
+      <input type="text" id="search-artist" placeholder="Artist (e.g. Tame Impala)" class="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-purple-500 transition-all">
+      <input type="text" id="search-track" placeholder="Song (e.g. Let It Happen)" class="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-purple-500 transition-all">
+      <button id="spin-btn" onclick="generatePlaylist()" class="px-8 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed">
+        Dig
       </button>
     </div>
 
@@ -102,64 +105,59 @@
 
   </main>
 
-  <script>
+   <script>
     // 1. PUT YOUR LAST.FM API KEY HERE
     const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; // <--- Change this!
-
-    // 2. Set the seed song (the starting point for recommendations)
-      const SEED_ARTIST = 'Tame Impala';
-      const SEED_TRACK = 'The Less I Know The Better';
 
     async function generatePlaylist() {
       const btn = document.getElementById('spin-btn');
       const resultView = document.getElementById('result-view');
       const listContainer = document.getElementById('song-list');
       
+      // Get the values from the input boxes
+      const seedArtist = document.getElementById('search-artist').value.trim();
+      const seedTrack = document.getElementById('search-track').value.trim();
+
+      // If the user didn't type anything, use a default
+      let finalArtist = seedArtist || 'Tame Impala';
+      let finalTrack = seedTrack || 'The Less I Know The Better';
+
       // Show loading state
       btn.innerText = "Digging...";
       btn.disabled = true;
       resultView.classList.remove('hidden');
-      listContainer.innerHTML = '<li class="text-gray-400 p-3">Searching the underground...</li>';
+      listContainer.innerHTML = `<li class="text-gray-400 p-3">Searching the underground for ${finalTrack}...</li>`;
 
       try {
-        // Build the Last.fm API URL
-        const url = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(SEED_ARTIST)}&track=${encodeURIComponent(SEED_TRACK)}&api_key=${LASTFM_API_KEY}&format=json&limit=10`;
+        // Build the Last.fm API URL with the user's inputs
+        const url = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(finalArtist)}&track=${encodeURIComponent(finalTrack)}&api_key=${LASTFM_API_KEY}&format=json&limit=10`;
 
         const response = await fetch(url);
         const data = await response.json();
-        console.log("Last.fm says:", data);
 
-        // Last.fm returns data inside data.similartracks.track
         if (data.similartracks && data.similartracks.track) {
           const tracks = data.similartracks.track;
-          
           listContainer.innerHTML = '';
 
           tracks.slice(0, 5).forEach(track => {
             const li = document.createElement('li');
             li.className = "p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition flex items-center gap-3";
             
-            // Safely extract the artist name no matter how Last.fm formats it
             let artistName = "Unknown Artist";
             if (track.artist) {
-              if (typeof track.artist === 'string') {
-                artistName = track.artist;
-              } else if (track.artist.name) {
-                artistName = track.artist.name;
-              } else if (track.artist['#text']) {
-                artistName = track.artist['#text'];
-              }
+              if (typeof track.artist === 'string') artistName = track.artist;
+              else if (track.artist.name) artistName = track.artist.name;
+              else if (track.artist['#text']) artistName = track.artist['#text'];
             }
 
-            // Safely extract the track name
             const trackName = track.name || "Unknown Track";
-
             li.innerHTML = `<span class="text-purple-400">▶</span> ${trackName} — <span class="text-gray-500">${artistName}</span>`;
             listContainer.appendChild(li);
           });
+          
           btn.innerText = "Dig Again";
         } else {
-          listContainer.innerHTML = '<li class="text-red-400 p-3">No similar tracks found. Try a different seed.</li>';
+          listContainer.innerHTML = '<li class="text-red-400 p-3">No similar tracks found. Try a different song!</li>';
           btn.innerText = "Try Again";
         }
       } catch (error) {
