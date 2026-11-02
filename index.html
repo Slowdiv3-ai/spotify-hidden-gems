@@ -128,7 +128,7 @@
       // STEP 1: Search Deezer (using CORS proxy)
            // Much looser search: just ask Deezer for "Artist Song"
       const searchUrl = `https://api.deezer.com/search?q=${encodeURIComponent(finalArtist + ' ' + finalTrack)}`;
-      const proxySearchUrl = `https://proxy.corsfix.com/?${searchUrl}`;
+      const proxySearchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
       
       const searchResponse = await fetch(proxySearchUrl);
       const searchData = await searchResponse.json();
@@ -149,7 +149,7 @@
       // STEP 2: Get similar tracks (using CORS proxy)
       listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Finding hidden gems...</li>`;
       const similarUrl = `https://api.deezer.com/track/${trackId}/related`;
-      const proxySimilarUrl = `https://proxy.corsfix.com/?${similarUrl}`;
+      const proxySimilarUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(similarUrl)}`;
       
       const similarResponse = await fetch(proxySimilarUrl);
       const similarData = await similarResponse.json();
