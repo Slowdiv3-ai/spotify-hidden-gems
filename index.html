@@ -107,8 +107,8 @@
     const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; // <--- Change this!
 
     // 2. Set the seed song (the starting point for recommendations)
-    const SEED_ARTIST = 'Men I Trust';
-    const SEED_TRACK = 'Show Me How';
+      const SEED_ARTIST = 'Tame Impala';
+      const SEED_TRACK = 'The Less I Know The Better';
 
     async function generatePlaylist() {
       const btn = document.getElementById('spin-btn');
@@ -127,6 +127,7 @@
 
         const response = await fetch(url);
         const data = await response.json();
+        console.log("Last.fm says:", data);
 
         // Last.fm returns data inside data.similartracks.track
         if (data.similartracks && data.similartracks.track) {
