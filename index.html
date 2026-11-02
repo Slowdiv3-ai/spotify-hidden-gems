@@ -105,7 +105,7 @@
 
   </main>
     <script>
-    const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; // <--- Make sure your key is here!
+    // No API key needed for Deezer's public search/similar endpoints!
 
     async function generatePlaylist() {
       const btn = document.getElementById('spin-btn');
@@ -121,50 +121,56 @@
       btn.innerText = "Digging...";
       btn.disabled = true;
       resultView.classList.remove('hidden');
-      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching the underground...</li>`;
+      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching Deezer...</li>`;
 
       try {
-        const url = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(finalArtist)}&track=${encodeURIComponent(finalTrack)}&api_key=${LASTFM_API_KEY}&format=json&limit=5`;
+        // STEP 1: Search Deezer for the track to get its ID
+        const searchUrl = `https://api.deezer.com/search?q=artist:"${encodeURIComponent(finalArtist)}" track:"${encodeURIComponent(finalTrack)}"`;
+        const searchResponse = await fetch(searchUrl);
+        const searchData = await searchResponse.json();
 
-        const response = await fetch(url);
-        const data = await response.json();
-
-        // If Last.fm returned no tracks, show the red error box
-        if (data.error || !data.similartracks || !data.similartracks.track) {
+        if (!searchData.data || searchData.data.length === 0) {
            listContainer.innerHTML = `
             <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
-              <p class="font-bold mb-1">No similar tracks found for "${finalTrack}".</p>
-              <p class="text-sm text-red-300/80">Last.fm's database is weird. Try an indie song, or check the spelling!</p>
+              <p class="font-bold mb-1">Deezer couldn't find "${finalTrack}".</p>
+              <p class="text-sm text-red-300/80">Check the spelling, or try a different song.</p>
             </li>`;
           btn.innerText = "Try Again";
           btn.disabled = false;
-          return; // Stop the code here
+          return;
         }
 
-        const tracks = data.similartracks.track;
+        // Take the first result's ID
+        const trackId = searchData.data[0].id;
+        
+        // STEP 2: Get similar tracks using the ID
+        listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Finding hidden gems...</li>`;
+        const similarUrl = `https://api.deezer.com/track/${trackId}/related`;
+        const similarResponse = await fetch(similarUrl);
+        const similarData = await similarResponse.json();
+
+        if (!similarData.data || similarData.data.length === 0) {
+           listContainer.innerHTML = `
+            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
+              <p class="font-bold mb-1">No similar tracks found.</p>
+              <p class="text-sm text-red-300/80">Deezer has the song, but no recommendations for it.</p>
+            </li>`;
+          btn.innerText = "Try Again";
+          btn.disabled = false;
+          return;
+        }
+
+        // We have similar tracks!
+        const tracks = similarData.data;
         listContainer.innerHTML = '';
 
-        // We use a standard for loop. It's the most stable way to handle async requests.
-        for (let i = 0; i < tracks.length; i++) {
-          const track = tracks[i];
+        // Deezer returns up to 25. Let's take the first 5.
+        for (const track of tracks.slice(0, 5)) {
+          const trackName = track.title || "Unknown Track";
+          const artistName = track.artist?.name || "Unknown Artist";
           
-          const trackName = track?.name || "Unknown Track";
-          const artistName = track?.artist?.name || track?.artist?.['#text'] || track?.artist || "Unknown Artist";
-
-          // Failsafe Album Art Default
-          let imageUrl = "https://via.placeholder.com/100/333333/ffffff?text=Gems"; 
-          
-          try {
-            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(trackName + ' ' + artistName)}&limit=1&entity=song`;
-            const itunesRes = await fetch(itunesUrl);
-            const itunesData = await itunesRes.json();
-            
-            if (itunesData.results && itunesData.results.length > 0) {
-              imageUrl = itunesData.results[0].artworkUrl100.replace('100x100', '200x200');
-            }
-          } catch (e) {
-            console.log("iTunes blocked the request, using placeholder.");
-          }
+          // Deezer provides album art directly! No need for iTunes.
+          const imageUrl = track.album?.cover_medium || "https://via.placeholder.com/100/333333/ffffff?text=Gems";
 
           const li = document.createElement('li');
           li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
