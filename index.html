@@ -104,97 +104,98 @@
     </div>
 
   </main>
-    <script>
-    // No API key needed for Deezer's public search/similar endpoints!
 
-    async function generatePlaylist() {
-      const btn = document.getElementById('spin-btn');
-      const resultView = document.getElementById('result-view');
-      const listContainer = document.getElementById('song-list');
+  <script>
+  // Note: No API key needed for Deezer's public endpoints!
+
+  async function generatePlaylist() {
+    const btn = document.getElementById('spin-btn');
+    const resultView = document.getElementById('result-view');
+    const listContainer = document.getElementById('song-list');
+    
+    const seedArtist = document.getElementById('search-artist').value.trim();
+    const seedTrack = document.getElementById('search-track').value.trim();
+
+    const finalArtist = seedArtist || 'Tame Impala';
+    const finalTrack = seedTrack || 'The Less I Know The Better';
+
+    btn.innerText = "Digging...";
+    btn.disabled = true;
+    resultView.classList.remove('hidden');
+    listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching Deezer...</li>`;
+
+    try {
+      // STEP 1: Search Deezer (using CORS proxy)
+      const searchUrl = `https://api.deezer.com/search?q=artist:"${encodeURIComponent(finalArtist)}" track:"${encodeURIComponent(finalTrack)}"`;
+      const proxySearchUrl = `https://proxy.corsfix.com/?${searchUrl}`;
       
-      const seedArtist = document.getElementById('search-artist').value.trim();
-      const seedTrack = document.getElementById('search-track').value.trim();
+      const searchResponse = await fetch(proxySearchUrl);
+      const searchData = await searchResponse.json();
 
-      const finalArtist = seedArtist || 'Tame Impala';
-      const finalTrack = seedTrack || 'The Less I Know The Better';
-
-      btn.innerText = "Digging...";
-      btn.disabled = true;
-      resultView.classList.remove('hidden');
-      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching Deezer...</li>`;
-
-      try {
-        // STEP 1: Search Deezer for the track to get its ID
-        const searchUrl = `https://api.deezer.com/search?q=artist:"${encodeURIComponent(finalArtist)}" track:"${encodeURIComponent(finalTrack)}"`;
-        const searchResponse = await fetch(searchUrl);
-        const searchData = await searchResponse.json();
-
-        if (!searchData.data || searchData.data.length === 0) {
-           listContainer.innerHTML = `
-            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
-              <p class="font-bold mb-1">Deezer couldn't find "${finalTrack}".</p>
-              <p class="text-sm text-red-300/80">Check the spelling, or try a different song.</p>
-            </li>`;
-          btn.innerText = "Try Again";
-          btn.disabled = false;
-          return;
-        }
-
-        // Take the first result's ID
-        const trackId = searchData.data[0].id;
-        
-        // STEP 2: Get similar tracks using the ID
-        listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Finding hidden gems...</li>`;
-        const similarUrl = `https://api.deezer.com/track/${trackId}/related`;
-        const similarResponse = await fetch(similarUrl);
-        const similarData = await similarResponse.json();
-
-        if (!similarData.data || similarData.data.length === 0) {
-           listContainer.innerHTML = `
-            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
-              <p class="font-bold mb-1">No similar tracks found.</p>
-              <p class="text-sm text-red-300/80">Deezer has the song, but no recommendations for it.</p>
-            </li>`;
-          btn.innerText = "Try Again";
-          btn.disabled = false;
-          return;
-        }
-
-        // We have similar tracks!
-        const tracks = similarData.data;
-        listContainer.innerHTML = '';
-
-        // Deezer returns up to 25. Let's take the first 5.
-        for (const track of tracks.slice(0, 5)) {
-          const trackName = track.title || "Unknown Track";
-          const artistName = track.artist?.name || "Unknown Artist";
-          
-          // Deezer provides album art directly! No need for iTunes.
-          const imageUrl = track.album?.cover_medium || "https://via.placeholder.com/100/333333/ffffff?text=Gems";
-
-          const li = document.createElement('li');
-          li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
-          
-          li.innerHTML = `
-            <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform bg-gray-800">
-            <div class="flex flex-col">
-              <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
-              <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
-            </div>
-          `;
-          listContainer.appendChild(li);
-        }
-        
-        btn.innerText = "Dig Again";
-
-      } catch (error) {
-        console.error(error);
-        listContainer.innerHTML = `<li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200"><p class="font-bold">Network Error. Check your connection.</p></li>`;
-        btn.innerText = "Error";
-      } finally {
+      if (!searchData.data || searchData.data.length === 0) {
+         listContainer.innerHTML = `
+          <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
+            <p class="font-bold mb-1">Deezer couldn't find "${finalTrack}".</p>
+            <p class="text-sm text-red-300/80">Check the spelling, or try a different song.</p>
+          </li>`;
+        btn.innerText = "Try Again";
         btn.disabled = false;
+        return;
       }
+
+      const trackId = searchData.data[0].id;
+      
+      // STEP 2: Get similar tracks (using CORS proxy)
+      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Finding hidden gems...</li>`;
+      const similarUrl = `https://api.deezer.com/track/${trackId}/related`;
+      const proxySimilarUrl = `https://proxy.corsfix.com/?${similarUrl}`;
+      
+      const similarResponse = await fetch(proxySimilarUrl);
+      const similarData = await similarResponse.json();
+
+      if (!similarData.data || similarData.data.length === 0) {
+         listContainer.innerHTML = `
+          <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
+            <p class="font-bold mb-1">No similar tracks found.</p>
+            <p class="text-sm text-red-300/80">Deezer has the song, but no recommendations for it.</p>
+          </li>`;
+        btn.innerText = "Try Again";
+        btn.disabled = false;
+        return;
+      }
+
+      const tracks = similarData.data;
+      listContainer.innerHTML = '';
+
+      for (const track of tracks.slice(0, 5)) {
+        const trackName = track.title || "Unknown Track";
+        const artistName = track.artist?.name || "Unknown Artist";
+        const imageUrl = track.album?.cover_medium || "https://via.placeholder.com/100/333333/ffffff?text=Gems";
+
+        const li = document.createElement('li');
+        li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
+        
+        li.innerHTML = `
+          <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform bg-gray-800">
+          <div class="flex flex-col">
+            <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
+            <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
+          </div>
+        `;
+        listContainer.appendChild(li);
+      }
+      
+      btn.innerText = "Dig Again";
+
+    } catch (error) {
+      console.error(error);
+      listContainer.innerHTML = `<li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200"><p class="font-bold">Network Error. The proxy might be down, or your connection is blocked.</p></li>`;
+      btn.innerText = "Error";
+    } finally {
+      btn.disabled = false;
     }
-  </script>
+  }
+</script>
+     
 </body>
 </html>
