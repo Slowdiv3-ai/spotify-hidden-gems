@@ -106,37 +106,61 @@
   </main>
 
   <script>
-    const songs = [
-      "Men I Trust - Show Me How",
-      "Crumb - Locket",
-      "Mac DeMarco - Chamber of Reflection",
-      "Cigarettes After Sex - Apocalypse",
-      "Beach House - Space Song",
-      "Vansire - Halcyon Age",
-      "Tame Impala - Yes I'm Changing",
-      "Mild High Club - Homage"
-    ];
+    // Replace this with your actual Last.fm API Key
+const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91';
 
-    function generatePlaylist() {
-      // Unhide the results
-      document.getElementById('result-view').classList.remove('hidden');
+// The "seed" song. You can change this later to be dynamic (user input).
+const SEED_ARTIST = 'Men I Trust';
+const SEED_TRACK = 'Show Me How';
+
+async function generatePlaylist() {
+  const btn = document.getElementById('spin-btn');
+  const resultView = document.getElementById('result-view');
+  const listContainer = document.getElementById('song-list');
+  
+  // Show loading state
+  btn.innerText = "Digging...";
+  btn.disabled = true;
+  resultView.classList.remove('hidden');
+  listContainer.innerHTML = '<li class="text-gray-400 p-3">Searching the underground...</li>';
+
+  try {
+    // Build the Last.fm API URL
+    const url = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(SEED_ARTIST)}&track=${encodeURIComponent(SEED_TRACK)}&api_key=${LASTFM_API_KEY}&format=json&limit=10`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // Last.fm returns data inside data.similartracks.track
+    if (data.similartracks && data.similartracks.track) {
+      const tracks = data.similartracks.track;
       
-      const btn = document.getElementById('spin-btn');
-      btn.innerText = "Shuffle Again";
-      
-      const listContainer = document.getElementById('song-list');
-      listContainer.innerHTML = ''; 
+      // Clear the loading message
+      listContainer.innerHTML = '';
 
-      const shuffled = [...songs].sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, 5);
-
-      selected.forEach(song => {
+      // Take the top 5 results
+      tracks.slice(0, 5).forEach(track => {
         const li = document.createElement('li');
         li.className = "p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition flex items-center gap-3";
-        li.innerHTML = `<span class="text-purple-400">▶</span> ${song}`;
+        // Last.fm returns artist as an object with a #text property
+        const artistName = track.artist.name || track.artist['#text'];
+        li.innerHTML = `<span class="text-purple-400">▶</span> ${track.name} — <span class="text-gray-500">${artistName}</span>`;
         listContainer.appendChild(li);
       });
+      
+      btn.innerText = "Dig Again";
+    } else {
+      listContainer.innerHTML = '<li class="text-red-400 p-3">No similar tracks found. Try a different seed.</li>';
+      btn.innerText = "Try Again";
     }
+  } catch (error) {
+    console.error(error);
+    listContainer.innerHTML = '<li class="text-red-400 p-3">API error. Check your console.</li>';
+    btn.innerText = "Error";
+  } finally {
+    btn.disabled = false;
+  }
+}
   </script>
 
 </body>
