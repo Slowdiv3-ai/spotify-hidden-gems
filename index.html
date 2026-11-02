@@ -6,41 +6,90 @@
   <title>Hidden Gems Music</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Import a cleaner font for that premium look */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #000000;
+      background-color: #030303; /* Very dark, almost black */
       color: white;
       margin: 0;
       overflow-x: hidden;
     }
 
-    /* The container for the 3D wave background */
-    #canvas-container {
+    /* --- THE CSS GLOWING BACKGROUND --- */
+    .aurora-container {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .aurora-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px); /* This creates the soft glowing effect */
+      opacity: 0.4;
+      animation: float 20s infinite alternate ease-in-out;
+    }
+
+    /* Purple Orb */
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: #6d28d9; 
+      top: -10%;
+      left: -10%;
+      animation-delay: 0s;
+    }
+
+    /* Blue Orb */
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: #2563eb; 
+      bottom: -10%;
+      right: -10%;
+      animation-delay: -5s;
+    }
+
+    /* Pink Orb */
+    .orb-3 {
+      width: 400px;
+      height: 400px;
+      background: #db2777;
+      top: 40%;
+      left: 40%;
+      animation-delay: -10s;
+    }
+
+    /* Animation to make the orbs slowly drift around */
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(100px, 50px) scale(1.1); }
+      100% { transform: translate(-50px, 150px) scale(0.9); }
     }
   </style>
 </head>
 <body class="min-h-screen flex flex-col relative">
 
-  <!-- 3D Particle Background -->
-  <div id="canvas-container"></div>
+  <!-- The Glowing Background -->
+  <div class="aurora-container">
+    <div class="aurora-orb orb-1"></div>
+    <div class="aurora-orb orb-2"></div>
+    <div class="aurora-orb orb-3"></div>
+  </div>
 
-  <!-- Top Navigation Bar (like the Qronos design) -->
-  <nav class="w-full flex justify-between items-center px-8 py-6 relative z-10 border-b border-white/10 backdrop-blur-md bg-black/20">
+  <!-- Top Navigation Bar -->
+  <nav class="w-full flex justify-between items-center px-8 py-6 relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-md">
     <div class="text-xl font-bold tracking-tighter flex items-center gap-2">
-      <!-- A little music icon -->
-      <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+      <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
       HIDDEN GEMS
     </div>
-    <div class="hidden md:flex gap-8 text-sm text-gray-400 font-medium">
+    <div class="hidden md:flex gap-8 text-sm text-gray-300 font-medium">
       <a href="#" class="hover:text-white transition">Discover</a>
       <a href="#" class="hover:text-white transition">Library</a>
       <a href="#" class="hover:text-white transition">Pricing</a>
@@ -68,7 +117,7 @@
       Curated deep cuts, underground vibes, and tracks you won't hear on the radio. Paste a vibe, get a playlist.
     </p>
 
-    <!-- The Button to trigger the JS -->
+    <!-- The Button -->
     <div class="flex flex-col sm:flex-row gap-4">
       <button id="spin-btn" onclick="generatePlaylist()" class="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
         Generate Hidden Gems
@@ -76,7 +125,7 @@
     </div>
 
     <!-- The Results Box (Hidden by default) -->
-    <div id="result-view" class="hidden mt-12 w-full max-w-2xl backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 text-left">
+    <div id="result-view" class="hidden mt-12 w-full max-w-2xl backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 text-left shadow-2xl">
       <h2 class="text-xl font-semibold mb-4 text-white">Your 5 Hidden Gems:</h2>
       <ul id="song-list" class="space-y-2 text-gray-300">
         <!-- Songs go here -->
@@ -84,25 +133,6 @@
     </div>
 
   </main>
-
-  <!-- Script for the 3D background (Vanta.js) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js"></script>
-  <script>
-    // Initialize the 3D wave background
-    VANTA.TOPOLOGY({
-      el: "#canvas-container",
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      minHeight: 200.00,
-      minWidth: 200.00,
-      scale: 1.00,
-      scaleMobile: 1.00,
-      color: 0x4c1d95, /* Deep purple color */
-      backgroundColor: 0x000000
-    })
-  </script>
 
   <!-- Script for the Song Generator -->
   <script>
