@@ -105,98 +105,103 @@
 
   </main>
 
-  <script>
-  // Note: No API key needed for Deezer's public endpoints!
+   <script>
+    // PUT YOUR LAST.FM API KEY HERE
+    const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; 
 
-  async function generatePlaylist() {
-    const btn = document.getElementById('spin-btn');
-    const resultView = document.getElementById('result-view');
-    const listContainer = document.getElementById('song-list');
-    
-    const seedArtist = document.getElementById('search-artist').value.trim();
-    const seedTrack = document.getElementById('search-track').value.trim();
-
-    const finalArtist = seedArtist || 'Tame Impala';
-    const finalTrack = seedTrack || 'The Less I Know The Better';
-
-    btn.innerText = "Digging...";
-    btn.disabled = true;
-    resultView.classList.remove('hidden');
-    listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching Deezer...</li>`;
-
-    try {
-      // STEP 1: Search Deezer (using CORS proxy)
-           // Much looser search: just ask Deezer for "Artist Song"
-      const searchUrl = `https://api.deezer.com/search?q=${encodeURIComponent(finalArtist + ' ' + finalTrack)}`;
-      const proxySearchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
+    async function generatePlaylist() {
+      const btn = document.getElementById('spin-btn');
+      const resultView = document.getElementById('result-view');
+      const listContainer = document.getElementById('song-list');
       
-      const searchResponse = await fetch(proxySearchUrl);
-      const searchData = await searchResponse.json();
+      const seedArtist = document.getElementById('search-artist').value.trim();
+      const seedTrack = document.getElementById('search-track').value.trim();
 
-      if (!searchData.data || searchData.data.length === 0) {
-         listContainer.innerHTML = `
-          <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
-            <p class="font-bold mb-1">Deezer couldn't find "${finalTrack}".</p>
-            <p class="text-sm text-red-300/80">Check the spelling, or try a different song.</p>
-          </li>`;
-        btn.innerText = "Try Again";
-        btn.disabled = false;
-        return;
-      }
+      const finalArtist = seedArtist || 'Tame Impala';
+      const finalTrack = seedTrack || 'The Less I Know The Better';
 
-      const trackId = searchData.data[0].id;
-      
-      // STEP 2: Get similar tracks (using CORS proxy)
-      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Finding hidden gems...</li>`;
-      const similarUrl = `https://api.deezer.com/track/${trackId}/related`;
-      const proxySimilarUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(similarUrl)}`;
-      
-      const similarResponse = await fetch(proxySimilarUrl);
-      const similarData = await similarResponse.json();
+      btn.innerText = "Digging...";
+      btn.disabled = true;
+      resultView.classList.remove('hidden');
+      listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Searching the underground...</li>`;
 
-      if (!similarData.data || similarData.data.length === 0) {
-         listContainer.innerHTML = `
-          <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
-            <p class="font-bold mb-1">No similar tracks found.</p>
-            <p class="text-sm text-red-300/80">Deezer has the song, but no recommendations for it.</p>
-          </li>`;
-        btn.innerText = "Try Again";
-        btn.disabled = false;
-        return;
-      }
+      try {
+        // STEP 1: Try to find SIMILAR tracks
+        const similarUrl = `https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=${encodeURIComponent(finalArtist)}&track=${encodeURIComponent(finalTrack)}&api_key=${LASTFM_API_KEY}&format=json&limit=5`;
+        const response = await fetch(similarUrl);
+        const data = await response.json();
 
-      const tracks = similarData.data;
-      listContainer.innerHTML = '';
+        let tracks = [];
 
-      for (const track of tracks.slice(0, 5)) {
-        const trackName = track.title || "Unknown Track";
-        const artistName = track.artist?.name || "Unknown Artist";
-        const imageUrl = track.album?.cover_medium || "https://via.placeholder.com/100/333333/ffffff?text=Gems";
+        // If we found similar tracks, use them!
+        if (data.similartracks && data.similartracks.track) {
+          tracks = data.similartracks.track;
+        } else {
+          // FAILSAFE: If the song failed (like Post Malone), get the Artist's Top Tracks instead!
+          listContainer.innerHTML = `<li class="text-gray-400 p-3 animate-pulse">Song not found. Grabbing ${finalArtist}'s top tracks instead...</li>`;
+          
+          const topTracksUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=${encodeURIComponent(finalArtist)}&api_key=${LASTFM_API_KEY}&format=json&limit=5`;
+          const topResponse = await fetch(topTracksUrl);
+          const topData = await topResponse.json();
+          
+          if (topData.toptracks && topData.toptracks.track) {
+            tracks = topData.toptracks.track;
+          } else {
+            throw new Error("Artist not found");
+          }
+        }
 
-        const li = document.createElement('li');
-        li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
+        // STEP 2: Render the tracks and get iTunes Album Art
+        listContainer.innerHTML = '';
+
+        for (let i = 0; i < tracks.length; i++) {
+          const track = tracks[i];
+          const trackName = track?.name || "Unknown Track";
+          const artistName = track?.artist?.name || track?.artist?.['#text'] || track?.artist || finalArtist;
+
+          // Failsafe Album Art Default
+          let imageUrl = "https://via.placeholder.com/100/333333/ffffff?text=Gems"; 
+          
+          try {
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(trackName + ' ' + artistName)}&limit=1&entity=song`;
+            const itunesRes = await fetch(itunesUrl);
+            const itunesData = await itunesRes.json();
+            
+            if (itunesData.results && itunesData.results.length > 0) {
+              imageUrl = itunesData.results[0].artworkUrl100.replace('100x100', '200x200');
+            }
+          } catch (e) {
+            console.log("iTunes blocked the request, using placeholder.");
+          }
+
+          const li = document.createElement('li');
+          li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
+          
+          li.innerHTML = `
+            <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform bg-gray-800">
+            <div class="flex flex-col">
+              <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
+              <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
+            </div>
+          `;
+          listContainer.appendChild(li);
+        }
         
-        li.innerHTML = `
-          <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform bg-gray-800">
-          <div class="flex flex-col">
-            <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
-            <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
-          </div>
-        `;
-        listContainer.appendChild(li);
-      }
-      
-      btn.innerText = "Dig Again";
+        btn.innerText = "Dig Again";
 
-    } catch (error) {
-      console.error(error);
-      listContainer.innerHTML = `<li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200"><p class="font-bold">Network Error. The proxy might be down, or your connection is blocked.</p></li>`;
-      btn.innerText = "Error";
-    } finally {
-      btn.disabled = false;
+      } catch (error) {
+        console.error(error);
+        listContainer.innerHTML = `
+            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
+              <p class="font-bold mb-1">Could not find data for "${finalArtist}".</p>
+              <p class="text-sm text-red-300/80">Check the spelling or try an indie artist!</p>
+            </li>`;
+        btn.innerText = "Try Again";
+      } finally {
+        btn.disabled = false;
+      }
     }
-  }
-</script>
+  </script>
      
 </body>
 </html>
