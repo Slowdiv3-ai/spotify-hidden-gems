@@ -104,9 +104,7 @@
     </div>
 
   </main>
-
-    <script>
-    // 1. YOUR API KEY
+  <script>
     const LASTFM_API_KEY = '8558552f0e24e9a4188576a7d8a36c91'; // <--- Make sure your key is here!
 
     async function generatePlaylist() {
@@ -117,11 +115,9 @@
       const seedArtist = document.getElementById('search-artist').value.trim();
       const seedTrack = document.getElementById('search-track').value.trim();
 
-      // If the user leaves it blank, default to Tame Impala
       const finalArtist = seedArtist || 'Tame Impala';
       const finalTrack = seedTrack || 'The Less I Know The Better';
 
-      // Show loading state
       btn.innerText = "Digging...";
       btn.disabled = true;
       resultView.classList.remove('hidden');
@@ -133,61 +129,65 @@
         const response = await fetch(url);
         const data = await response.json();
 
-        // Check if Last.fm actually gave us tracks
-        if (data.similartracks && data.similartracks.track) {
-          const tracks = data.similartracks.track;
-          listContainer.innerHTML = '';
-
-          tracks.slice(0, 5).forEach(track => {
-            const li = document.createElement('li');
-            // Added flexbox and hover effects to fit the album art
-            li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
-            
-            let artistName = "Unknown Artist";
-            if (track.artist) {
-              if (typeof track.artist === 'string') artistName = track.artist;
-              else if (track.artist.name) artistName = track.artist.name;
-              else if (track.artist['#text']) artistName = track.artist['#text'];
-            }
-
-            const trackName = track.name || "Unknown Track";
-
-            // GET THE ALBUM ART (Fallback to a blank grey square if none exists)
-            let imageUrl = "https://via.placeholder.com/100/333333/ffffff?text=No+Art";
-            if (track.image && track.image.length > 0) {
-              // Last.fm returns multiple sizes. We want the 'large' one.
-              const largeImage = track.image.find(img => img.size === 'large');
-              if (largeImage && largeImage['#text']) imageUrl = largeImage['#text'];
-            }
-
-            li.innerHTML = `
-              <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform">
-              <div class="flex flex-col">
-                <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
-                <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
-              </div>
-            `;
-            listContainer.appendChild(li);
-          });
-          
-          btn.innerText = "Dig Again";
-        } else {
-          // If the API responded but had no similar tracks
-          listContainer.innerHTML = `
+        // If Last.fm returned an error OR no tracks, handle it safely
+        if (data.error || !data.similartracks || !data.similartracks.track) {
+           listContainer.innerHTML = `
             <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
               <p class="font-bold mb-1">No similar tracks found for "${finalTrack}".</p>
-              <p class="text-sm text-red-300/80">Last.fm's underground database is weird. Try an indie song, or check the spelling!</p>
+              <p class="text-sm text-red-300/80">Last.fm's database is weird. Try an indie song, or check the spelling!</p>
             </li>`;
           btn.innerText = "Try Again";
+          btn.disabled = false;
+          return; // Stop the code here so it doesn't crash
         }
+
+        // If we get here, we have tracks!
+        const tracks = data.similartracks.track;
+        listContainer.innerHTML = '';
+
+        // We use a for...of loop so we can wait for the iTunes fetch
+        for (const track of tracks.slice(0, 5)) {
+          const li = document.createElement('li');
+          li.className = "p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition flex items-center gap-4 group cursor-pointer";
+          
+          let artistName = "Unknown Artist";
+          if (track.artist) {
+            if (typeof track.artist === 'string') artistName = track.artist;
+            else if (track.artist.name) artistName = track.artist.name;
+            else if (track.artist['#text']) artistName = track.artist['#text'];
+          }
+          const trackName = track.name || "Unknown Track";
+
+          // --- THE NEW ALBUM ART FIX (Using iTunes API) ---
+          let imageUrl = "https://via.placeholder.com/100/333333/ffffff?text=No+Art"; // Default fallback
+          try {
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(trackName + ' ' + artistName)}&limit=1&entity=song`;
+            const itunesRes = await fetch(itunesUrl);
+            const itunesData = await itunesRes.json();
+            
+            if (itunesData.results && itunesData.results.length > 0) {
+              // Upgrade the image to 200x200 for better quality
+              imageUrl = itunesData.results[0].artworkUrl100.replace('100x100', '200x200');
+            }
+          } catch (e) {
+             console.log("iTunes fetch failed for", trackName);
+          }
+
+          li.innerHTML = `
+            <img src="${imageUrl}" alt="Album Art" class="w-16 h-16 rounded-md object-cover shadow-lg group-hover:scale-105 transition-transform bg-gray-800">
+            <div class="flex flex-col">
+              <span class="text-white font-semibold text-lg line-clamp-1">${trackName}</span>
+              <span class="text-gray-400 text-sm line-clamp-1">${artistName}</span>
+            </div>
+          `;
+          listContainer.appendChild(li);
+        }
+        
+        btn.innerText = "Dig Again";
+
       } catch (error) {
-        // If the API totally broke (e.g., bad internet, bad API key)
         console.error(error);
-        listContainer.innerHTML = `
-            <li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200">
-              <p class="font-bold mb-1">API Error.</p>
-              <p class="text-sm text-red-300/80">Check your internet connection or make sure your Last.fm API key is correct.</p>
-            </li>`;
+        listContainer.innerHTML = `<li class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200"><p class="font-bold">API Error.</p></li>`;
         btn.innerText = "Error";
       } finally {
         btn.disabled = false;
